@@ -1,97 +1,91 @@
-# <TITLE>
+# [BF] Kafka-Orion-Gateway
 
-[![License: MIT](https://img.shields.io/github/license/ramp-eu/TTE.project1.svg)](https://opensource.org/licenses/MIT)
-[![Docker badge](https://img.shields.io/docker/pulls/ramp-eu/TTE.project1.svg)](https://hub.docker.com/r/<org>/<repo>/)
-<br/>
-[![Documentation Status](https://readthedocs.org/projects/tte-project1/badge/?version=latest)](https://tte-project1.readthedocs.io/en/latest/?badge=latest)
-[![CI](https://github.com/ramp-eu/TTE.project1/workflows/CI/badge.svg)](https://github.com/ramp-eu/TTE.project1/actions?query=workflow%3ACI)
-[![Coverage Status](https://coveralls.io/repos/github/ramp-eu/TTE.project1/badge.svg?branch=master)](https://coveralls.io/github/ramp-eu/TTE.project1?branch=master)
-[![Codacy grade](https://img.shields.io/codacy/grade/99310c5c4332439197633912a99d2e3c)](https://app.codacy.com/manual/jason-fox/TTE.project1)
-[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/4187/badge)](https://bestpractices.coreinfrastructure.org/projects/4187)
+This repository describes how to use the Docker image for the *kafka-orion-gateway* component, as part of the Cognitive Human Robot Interaction (C-HRI) scenario defined within the Better Factory project. The deployment is provided by means of Docker Compose, and the set of initialized components is depicted in the picture here below:
 
-```text
+![docker-deployment](./docker-deployment.png)
 
-The Badges above demonstrate testing, code coverage
-and commitment to coding standards (since the code is linted on commit).
+The blue-colored components represent the core components for which SUPSI provides and maintains a Docker image, while the green-colored ones represent dependencies that are provided as Docker images by third parties.
 
-The links need to be amended to point to the correct repo.
+### kafka-orion-gateway
+The *kafka-orion-gateway* component serves as a data gateway between two brokers, i.e., Kafka Broker (KB) and Orion Context Broker by FIWARE (OCB).
 
-Sign up for:
+A specific service subscribes a set of predefined topics in KB, then converts the information to an OCB entity and forwards the message to OCB using the OCB REST API endpoint.
 
-- CI Test system - e.g. GitHub Actions, Travis
-- A Documentation website - e.g. ReadTheDocs
-- Static Code Analysis tool - e.g. Codacy
-- CII Best Practices https://bestpractices.coreinfrastructure.org
+At the same time, a REST controller is defined to receive notifications from OCB. All the notifications are converted into an Avro-serializable object and forwarded to dedicated KB topics.
 
-Only CII Best Practices (and its badge) is mandatory. Any equivalent public automated tools for the other three may be used.
+### Dependencies
 
-Note that the CII Best Practices questionaire will request evidence of tooling used.
+#### middleware
 
+The image is based on the [fast-data-dev (v2.6.2)](https://github.com/lensesio/fast-data-dev/tree/fdd/2.6.2) project by Lenses.io and runs a full fledged Kafka installation (including extra services, e.g., UIs).
+
+In addition, the Schema Registry is automatically populated with schemas available under the `/schemas` directory. In our deployment, the `/schemas` directory is read from the *kafka-message-model* component.
+
+The middleware is run in secure mode and can be accessed at [localhost:3040](localhost:3040) (credentials are stored in the docker-compose file).
+
+#### kafka-message-model
+This component embeds the data model shared within the Better Factory project. The data model is automatically uploaded to the Schema Registry available within the *middleware*.
+
+
+#### orion
+The *orion* component runs an instance of the Orion Context Broker (v3.1.0). It requires a MongoDB instance to use as storage system, which is provided by the *mongo* component.
+
+#### mongo
+The *mongo* component runs an official MongoDB docker image (v4.4).
+
+
+## How to Use
+
+### Requirements
+
+All the components are provided as Dockerized applications, thus the following software is required:
+
+- Docker
+- Docker Compose
+
+We tested our deployment on a machine running Ubuntu 21.04, with Docker v20.10.8, and Docker Compose v1.29.2.
+
+### Install
+
+Before running the containers, it is required to download the Docker images from their respective registries.
+While some images are publicly available, some other require credentials to be downloaded from private registries.
+
+> NOTE: Images provided by SUPSI can be download from the GitLab container registry, which supports the token-based authentication. Please send your request for a new token to the repository maintainers.
+
+Once you are provided with a username and a token, you can issue the following command to login to the private GitLab Docker registry and download the images:
+
+```shell
+docker login registry.example.com -u <username> -p <token>
+docker-compose pull
 ```
 
-```text
-One or two sentence preamble describing the element
+### Usage
+The docker-compose file automatically runs all the components as Docker containers. Each container can be customized by editing its environment parameters. The current deployment already set the right values for all the parameters.
+We suggest the user to only modify variables listed in the `.env` file, if needed.
+
+| Parameter name             | Parameter value | Default |
+| -------------------------- | --------------- | ------  |
+| BF_USER | A username shared by all the components | **bfuser** |
+| BF_PASSWORD | A password shared by all the components | **bfpwd123** |
+
+Run the **up** command to start all the containers:
+
+```shell
+docker-compose up -d
 ```
 
-## Contents
+You can now access different components:
 
-- [<TITLE>](#title)
-  - [Contents](#contents)
-  - [Background](#background)
-  - [Install](#install)
-  - [Usage](#usage)
-  - [API](#api)
-  - [Testing](#testing)
-  - [License](#license)
+- Kafka is accessible from the Kafka Development Environment, which is available at [localhost:3040](http://localhost:3040/). Here you can check schemas uploaded to the Schema Registry, as well as existing Kafka topics and their content.
 
-## Background
+- Orion is available at [localhost:1026](http://localhost:1026/) and can be queried using its [API](https://fiware-orion.readthedocs.io/en/1.13.0/user/walkthrough_apiv2/index.html). For example, the following query retrieves all the entities stored to the current Orion instance:
 
-```text
-Background information and links to relevant terms
+```shell
+curl localhost:1026/v2/entities -s -S -H 'Accept: application/json' | python -mjson.tool
 ```
 
-## Install
+## Maintainers
 
-```text
-How to install the component
-
-Information about how to install the <Name of component> can be found at the corresponding section of the
-[Installation & Administration Guide](docs/installationguide.md).
-
-A `Dockerfile` is also available for your use - further information can be found [here](docker/README.md)
-
-```
-
-## Usage
-
-```text
-How to use the component
-
-Information about how to use the <Name of component> can be found in the [User & Programmers Manual](docs/usermanual.md).
-
-The following features are listed as [deprecated](docs/deprecated.md).
-```
-
-## API
-
-```text
-Definition of the API interface:
-
-Information about the API of  the <Name of component> can be found in the [API documentation](docs/api.md).
-
-```
-
-## Testing
-
-```text
-How to test the component
-
-For performing a basic end-to-end test, you have to follow the step below. A detailed description about how to run tests can be found [here].
-
-> npm test
-
-```
-
-## License
-
-[MIT](LICENSE) © <TTE>
+- Vincenzo Cutrona - vincenzo.cutrona@supsi.ch
+- Niko Bonomi - niko.bonomi@supsi.ch
+- Giuseppe Landolfi - giuseppe.landolfi@supsi.ch
