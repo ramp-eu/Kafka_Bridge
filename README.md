@@ -94,4 +94,4 @@ For performing a basic end-to-end test, you have to follow the step below. A det
 
 ## License
 
-[MIT](LICENSE) © <TTE>
+[Apache-2](LICENSE) © <TTE>

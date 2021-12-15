@@ -1,0 +1,3 @@
+[submodule "bf-kafka-orion-gateway"]
+	path = bf-kafka-orion-gateway
+	url = https://github.com/isteps-sps-lab/bf-kafka-orion-gateway.git
